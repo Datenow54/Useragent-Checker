@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Advanced UA Checker</title>
+</head>
+<body>
+
+<h2>UA Checker (API Based)</h2>
+
+<textarea id="ua" style="width:100%;height:100px;"></textarea>
+<br><br>
+<button onclick="checkUA()">Check</button>
+
+<div id="result"></div>
+
+<script>
+async function checkUA() {
+  let ua = document.getElementById("ua").value;
+  let score = 100;
+  let issues = [];
+
+  // Get real Chrome versions from API
+  let res = await fetch("https://versionhistory.googleapis.com/v1/chrome/platforms/android/channels/stable/versions");
+  let data = await res.json();
+
+  let realVersions = data.versions.map(v => v.version.split('.')[0]);
+
+  // Extract UA Chrome version
+  let match = ua.match(/Chrome\/([\d\.]+)/);
+
+  if (match) {
+    let version = match[1];
+    let major = version.split('.')[0];
+
+    if (!realVersions.includes(major)) {
+      score -= 50;
+      issues.push("Chrome version not real (API mismatch)");
+    }
+
+    if (version.split('.').length !== 4) {
+      score -= 30;
+      issues.push("Invalid version format");
+    }
+
+  } else {
+    score -= 60;
+    issues.push("No Chrome found");
+  }
+
+  // Android check
+  if (ua.includes("Android") && !ua.includes("Mobile")) {
+    score -= 20;
+    issues.push("Missing Mobile keyword");
+  }
+
+  // Final result
+  let status = score > 80 ? "Realistic" : (score > 50 ? "Suspicious" : "Fake");
+
+  document.getElementById("result").innerHTML =
+    `<h3>Status: ${status}</h3>
+     <p>Score: ${score}%</p>
+     <p>Issues: ${issues.join(", ") || "None"}</p>`;
+}
+</script>
+
+</body>
+</html>
